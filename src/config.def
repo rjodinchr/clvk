@@ -85,6 +85,8 @@ OPTION(std::set<std::string>, device_extensions_masked, std::set<std::string>())
 
 PROPERTY(bool, reuse_descriptor_set, false)
 
+OPTION(bool, fill_image_on_device, false)
+
 //
 // Logging
 //
