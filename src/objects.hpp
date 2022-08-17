@@ -46,11 +46,18 @@ enum class object_magic : uint32_t
     sampler = 0x99AABBCCU
 };
 
+#include "memory_check.hpp"
+
 template <object_magic magic> struct object_magic_header {
-    object_magic_header() : m_magic(magic) {}
+    object_magic_header() : m_magic(magic) {
+        alloc_add(&m_magic, magic);
+    }
+    ~object_magic_header() {
+        alloc_del(&m_magic, magic);
+    }
     bool is_valid() const { return m_magic == magic; }
 
-private:
+public:
     object_magic m_magic;
 };
 

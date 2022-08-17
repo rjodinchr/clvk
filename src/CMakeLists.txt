@@ -54,6 +54,7 @@ add_library(OpenCL-objects OBJECT
   sha1.cpp
   unit.cpp
   utils.cpp
+  memory_check.cpp
   exports.map
 )
 

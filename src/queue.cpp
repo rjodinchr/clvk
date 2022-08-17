@@ -19,6 +19,8 @@
 #include "memory.hpp"
 #include "queue.hpp"
 
+#include "memory_check.hpp"
+
 static cvk_executor_thread_pool* get_thread_pool() {
     auto state = get_or_init_global_state();
     return state->thread_pool();
@@ -157,6 +159,7 @@ cl_int cvk_command_queue::enqueue_command(cvk_command* cmd, _cl_event** event) {
         // The event will be returned to the app, retain it for the user
         cmd->event()->retain();
         *event = cmd->event();
+        alloc_update_desc(&cmd->event()->m_magic, "user_event");
         cvk_debug_fn("returning event %p", *event);
     }
 

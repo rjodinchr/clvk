@@ -294,10 +294,10 @@ protected:
 #define CLVK_COMMAND_BATCH 0x5000
 #define CLVK_COMMAND_IMAGE_INIT 0x5001
 
-struct cvk_command {
+struct cvk_command : api_object<object_magic::command_queue> {
 
     cvk_command(cl_command_type type, cvk_command_queue* queue)
-        : m_type(type), m_queue(queue),
+        : api_object(queue->context()), m_type(type), m_queue(queue),
           m_event(new cvk_event(m_queue->context(), CL_QUEUED, type, queue)) {}
 
     virtual ~cvk_command() { m_event->release(); }

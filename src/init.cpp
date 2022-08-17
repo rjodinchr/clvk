@@ -25,6 +25,8 @@
 #include "objects.hpp"
 #include "queue.hpp"
 
+#include "memory_check.hpp"
+
 static VkBool32 VKAPI_PTR debugCallback(
     VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
     uint64_t object, size_t location, int32_t messageCode,
@@ -255,7 +257,10 @@ clvk_global_state::~clvk_global_state() {
 static clvk_global_state* gGlobalState;
 static std::once_flag gInitOnceFlag;
 
-static void destroy_global_state() { delete gGlobalState; }
+static void destroy_global_state() {
+    alloc_check();
+    delete gGlobalState;
+}
 
 static void init_global_state() {
     gGlobalState = new clvk_global_state();
