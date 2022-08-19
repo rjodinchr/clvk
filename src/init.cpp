@@ -259,6 +259,7 @@ static std::once_flag gInitOnceFlag;
 
 static void destroy_global_state() {
     alloc_check();
+    logMemoryReportStats();
     delete gGlobalState;
 }
 

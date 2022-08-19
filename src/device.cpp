@@ -20,6 +20,8 @@
 #include "log.hpp"
 #include "memory.hpp"
 
+#include "memory_check.hpp"
+
 #ifdef __ANDROID__
 #include <sys/system_properties.h>
 #endif
@@ -277,6 +279,7 @@ bool cvk_device::init_extensions() {
         VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME,
         VK_EXT_PCI_BUS_INFO_EXTENSION_NAME,
         VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+        VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME,
     };
 
     if (m_properties.apiVersion < VK_MAKE_VERSION(1, 2, 0)) {
@@ -322,6 +325,8 @@ void cvk_device::init_features(VkInstance instance) {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR;
     m_features_16bit_storage.sType =
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR;
+    m_features_device_memory_report.sType =
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEVICE_MEMORY_REPORT_FEATURES_EXT;
 
     std::vector<std::pair<const char*, VkBaseOutStructure*>>
         extension_features = {
@@ -336,6 +341,8 @@ void cvk_device::init_features(VkInstance instance) {
                     &m_features_8bit_storage),
             EXTFEAT(VK_KHR_16BIT_STORAGE_EXTENSION_NAME,
                     &m_features_16bit_storage),
+            EXTFEAT(VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME,
+                    &m_features_device_memory_report),
 #undef EXTFEAT
         };
 
@@ -391,6 +398,19 @@ void cvk_device::init_features(VkInstance instance) {
     }
     if (supported_features.features.shaderStorageImageWriteWithoutFormat) {
         m_features.features.shaderStorageImageWriteWithoutFormat = VK_TRUE;
+    }
+
+    if (is_vulkan_extension_enabled(
+            VK_EXT_DEVICE_MEMORY_REPORT_EXTENSION_NAME) &&
+        m_features_device_memory_report.deviceMemoryReport) {
+        m_memory_report_callback.sType =
+            VK_STRUCTURE_TYPE_DEVICE_DEVICE_MEMORY_REPORT_CREATE_INFO_EXT;
+        m_memory_report_callback.pNext = pNext;
+        m_memory_report_callback.flags = 0;
+        m_memory_report_callback.pfnUserCallback = &MemoryReportCallback;
+        m_memory_report_callback.pUserData = nullptr;
+        pNext =
+            reinterpret_cast<VkBaseOutStructure*>(&m_memory_report_callback);
     }
 
     // All queried extended features are enabled when supported.
