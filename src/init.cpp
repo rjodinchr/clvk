@@ -162,9 +162,10 @@ void clvk_global_state::init_vulkan() {
         enabledExtensions.data(),      // ppEnabledExtensionNames
     };
 
+    auto vmem = getVirtualMem();
     res = vkCreateInstance(&info, nullptr, &m_vulkan_instance);
     CVK_VK_CHECK_FATAL(res, "Could not create the instance");
-    alloc_add(&m_vulkan_instance, object_magic::vk, "vkCreateInstance");
+    alloc_add(&m_vulkan_instance, object_magic::vk, "vkCreateInstance", vmem);
     cvk_info("Created the VkInstance");
 
     // Create debug callback
@@ -184,9 +185,10 @@ void clvk_global_state::init_vulkan() {
         auto func =
             CVK_VK_GET_INSTANCE_PROC(this, vkCreateDebugReportCallbackEXT);
 
+        auto vmem = getVirtualMem();
         res = func(m_vulkan_instance, &callbackInfo, nullptr,
                    &m_vulkan_debug_callback);
-        alloc_add(&m_vulkan_debug_callback, object_magic::vk, "vkCreateDebugReportCallbackEXT");
+        alloc_add(&m_vulkan_debug_callback, object_magic::vk, "vkCreateDebugReportCallbackEXT", vmem);
         CVK_VK_CHECK_FATAL(res, "Can't setup debug callback");
     } else {
         cvk_warn("VK_EXT_debug_report not enabled");
@@ -197,11 +199,13 @@ void clvk_global_state::term_vulkan() {
     if (m_debug_report_enabled) {
         auto func =
             CVK_VK_GET_INSTANCE_PROC(this, vkDestroyDebugReportCallbackEXT);
+        auto vmem = getVirtualMem();
         func(m_vulkan_instance, m_vulkan_debug_callback, nullptr);
-        alloc_del(&m_vulkan_debug_callback, object_magic::vk, "vkDestroyDebugReportCallbackEXT");
+        alloc_del(&m_vulkan_debug_callback, object_magic::vk, "vkDestroyDebugReportCallbackEXT", vmem);
     }
+    auto vmem = getVirtualMem();
     vkDestroyInstance(m_vulkan_instance, nullptr);
-    alloc_del(&m_vulkan_instance, object_magic::vk, "vkDestroyInstance");
+    alloc_del(&m_vulkan_instance, object_magic::vk, "vkDestroyInstance", vmem);
 }
 
 void clvk_global_state::init_platform() {

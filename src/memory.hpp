@@ -29,8 +29,9 @@ struct cvk_memory_allocation {
 
     ~cvk_memory_allocation() {
         if (m_memory != VK_NULL_HANDLE) {
+            auto vmem = getVirtualMem();
             vkFreeMemory(m_device, m_memory, nullptr);
-            alloc_del(m_memory, object_magic::vk, "vkFreeMemory");
+            alloc_del(m_memory, object_magic::vk, "vkFreeMemory", vmem);
         }
     }
 
@@ -42,8 +43,9 @@ struct cvk_memory_allocation {
             m_memory_type_index,
         };
 
+        auto vmem = getVirtualMem();
         auto am = vkAllocateMemory(m_device, &memoryAllocateInfo, 0, &m_memory);
-        alloc_add(m_memory, object_magic::vk, "vkAllocateMemory");
+        alloc_add(m_memory, object_magic::vk, "vkAllocateMemory", vmem);
         return am;
     }
 
@@ -299,8 +301,9 @@ struct cvk_buffer : public cvk_mem {
     virtual ~cvk_buffer() {
         auto vkdev = m_context->device()->vulkan_device();
         if (m_buffer != VK_NULL_HANDLE) {
+            auto vmem = getVirtualMem();
             vkDestroyBuffer(vkdev, m_buffer, nullptr);
-            alloc_del(m_buffer, object_magic::vk, "vkDestroyBuffer");
+            alloc_del(m_buffer, object_magic::vk, "vkDestroyBuffer", vmem);
         }
     }
 
@@ -404,8 +407,9 @@ struct cvk_sampler : public _cl_sampler, api_object<object_magic::sampler> {
     ~cvk_sampler() {
         if (m_sampler != VK_NULL_HANDLE) {
             auto vkdev = context()->device()->vulkan_device();
+            auto vmem = getVirtualMem();
             vkDestroySampler(vkdev, m_sampler, nullptr);
-            alloc_del(m_sampler, object_magic::vk, "vkDestroySampler");
+            alloc_del(m_sampler, object_magic::vk, "vkDestroySampler", vmem);
         }
     }
 
@@ -466,16 +470,21 @@ struct cvk_image : public cvk_mem {
     ~cvk_image() {
         auto vkdev = m_context->device()->vulkan_device();
         if (m_image != VK_NULL_HANDLE) {
+            auto vmem = getVirtualMem();
             vkDestroyImage(vkdev, m_image, nullptr);
-            alloc_del(m_image, object_magic::vk, "vkDestroyImage");
+            alloc_del(m_image, object_magic::vk, "vkDestroyImage", vmem);
         }
         if (m_sampled_view != VK_NULL_HANDLE) {
+            auto vmem = getVirtualMem();
             vkDestroyImageView(vkdev, m_sampled_view, nullptr);
-            alloc_del(m_sampled_view, object_magic::vk, "vkDestroyImageView");
+            alloc_del(m_sampled_view, object_magic::vk, "vkDestroyImageView",
+                      vmem);
         }
         if (m_storage_view != VK_NULL_HANDLE) {
+            auto vmem = getVirtualMem();
             vkDestroyImageView(vkdev, m_storage_view, nullptr);
-            alloc_del(m_storage_view, object_magic::vk, "vkDestroyImageView");
+            alloc_del(m_storage_view, object_magic::vk, "vkDestroyImageView",
+                      vmem);
         }
         if (buffer() != nullptr) {
             buffer()->release();

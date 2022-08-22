@@ -15,6 +15,7 @@
 #include <cmath>
 
 #include "memory.hpp"
+#include "memory_check.hpp"
 #include "queue.hpp"
 
 bool cvk_mem::map() {
@@ -95,8 +96,9 @@ bool cvk_buffer::init() {
         nullptr, // pQueueFamilyIndices
     };
 
+    auto vmem = getVirtualMem();
     VkResult res = vkCreateBuffer(vkdev, &createInfo, nullptr, &m_buffer);
-    alloc_add(m_buffer, object_magic::vk, "vkCreateBuffer");
+    alloc_add(m_buffer, object_magic::vk, "vkCreateBuffer", vmem);
 
     if (res != VK_SUCCESS) {
         return false;
@@ -228,8 +230,9 @@ bool cvk_sampler::init() {
         unnormalized_coordinates,              // unnormalizedCoordinates
     };
 
+    auto vmem = getVirtualMem();
     auto res = vkCreateSampler(vkdev, &create_info, nullptr, &m_sampler);
-    alloc_add(m_sampler, object_magic::vk, "vkCreateSampler");
+    alloc_add(m_sampler, object_magic::vk, "vkCreateSampler", vmem);
 
     return (res == VK_SUCCESS);
 }
@@ -354,8 +357,9 @@ bool cvk_image::init() {
     auto device = m_context->device();
     auto vkdev = device->vulkan_device();
 
+    auto vmem = getVirtualMem();
     auto res = vkCreateImage(vkdev, &imageCreateInfo, nullptr, &m_image);
-    alloc_add(m_image, object_magic::vk, "vkCreateImage");
+    alloc_add(m_image, object_magic::vk, "vkCreateImage", vmem);
     if (res != VK_SUCCESS) {
         cvk_error_fn("Could not create image!");
         return false;
@@ -413,9 +417,10 @@ bool cvk_image::init() {
         subresource,        // subresourceRange
     };
 
+    vmem = getVirtualMem();
     res = vkCreateImageView(vkdev, &imageViewCreateInfo, nullptr,
                             &m_sampled_view);
-    alloc_add(m_sampled_view, object_magic::vk, "vkCreateImageView");
+    alloc_add(m_sampled_view, object_magic::vk, "vkCreateImageView", vmem);
 
     if (res != VK_SUCCESS) {
         return false;
@@ -423,9 +428,10 @@ bool cvk_image::init() {
 
     imageViewCreateInfo.components = components_storage;
 
+    vmem = getVirtualMem();
     res = vkCreateImageView(vkdev, &imageViewCreateInfo, nullptr,
                             &m_storage_view);
-    alloc_add(m_storage_view, object_magic::vk, "vkCreateImageView");
+    alloc_add(m_storage_view, object_magic::vk, "vkCreateImageView", vmem);
 
     if (res != VK_SUCCESS) {
         return false;

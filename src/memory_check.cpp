@@ -6,7 +6,36 @@
 #include "objects.hpp"
 #include "utils.hpp"
 
-std::map<void*, std::pair<std::string, std::string>> alloc;
+#include "stdlib.h"
+#include "string.h"
+
+int parseLine(char* line) {
+    // This assumes that a digit will be found and the line ends in " Kb".
+    int i = strlen(line);
+    const char* p = line;
+    while (*p < '0' || *p > '9')
+        p++;
+    line[i - 3] = '\0';
+    i = atoi(p);
+    return i;
+}
+
+int getVirtualMem() { // Note: this value is in KB!
+    FILE* file = fopen("/proc/self/status", "r");
+    int result = -1;
+    char line[128];
+
+    while (fgets(line, 128, file) != NULL) {
+        if (strncmp(line, "VmSize:", 7) == 0) {
+            result = parseLine(line);
+            break;
+        }
+    }
+    fclose(file);
+    return result;
+}
+
+std::map<void*, std::tuple<std::string, std::string, int>> alloc;
 std::map<object_magic, std::string> magic2str = {
     {object_magic::vk, "vk"},
     {object_magic::platform, "platform"},
@@ -25,47 +54,63 @@ void alloc_update_desc(void* id, std::string str) {
         cvk_error("ERROR: %p does not exist (%s)", id, str.c_str());
         return;
     }
-    alloc[id].second = str;
-    cvk_error("update %p %s: %s", id, alloc[id].first.c_str(),
-              alloc[id].second.c_str());
+    std::get<1>(alloc[id]) = str;
+    cvk_error("update %p %s: %s", id, std::get<0>(alloc[id]).c_str(),
+              std::get<1>(alloc[id]).c_str());
 }
 
 void alloc_check() {
     for (auto i : alloc) {
-        cvk_error("ERROR: %p not free %s: %s", i.first, i.second.first.c_str(),
-                  i.second.second.c_str());
+        cvk_error("ERROR: %p not free %s: %s (%u)", i.first,
+                  std::get<0>(i.second).c_str(), std::get<1>(i.second).c_str(),
+                  std::get<2>(i.second));
     }
 }
 
-void alloc_add(void* id, object_magic magic, std::string str) {
-    cvk_error("alloc %p %s-%s", (void*)id, magic2str[magic].c_str(),
-              str.c_str());
+void alloc_add(void* id, object_magic magic, std::string str, int size) {
+    auto vmem = getVirtualMem();
+    if (size != 0) {
+        size = vmem - size;
+    }
+    cvk_error("alloc %p %s-%s-%d (total: %d)", (void*)id,
+              magic2str[magic].c_str(), str.c_str(), size, vmem);
     auto find = alloc.find(id);
     if (find != alloc.end()) {
-        cvk_error("ERROR: %p already allocated (%s: %s-%s)", id,
-                  find->second.first.c_str(), find->second.second.c_str(),
-                  str.c_str());
+        cvk_error("ERROR: %p already allocated (%s: %s-%d)", id,
+                  std::get<0>(find->second).c_str(),
+                  std::get<1>(find->second).c_str(), std::get<2>(find->second));
         return;
     }
-    alloc[id] = std::make_pair(magic2str[magic], str);
+    alloc[id] = std::make_tuple(magic2str[magic], str, size);
 }
 
-void alloc_del(void* id, object_magic magic, std::string str) {
+void alloc_del(void* id, object_magic magic, std::string str, int size) {
+    auto vmem = getVirtualMem();
+    if (size != 0) {
+        size = size - vmem;
+    }
     auto find = alloc.find(id);
     if (find == alloc.end()) {
-        cvk_error("ERROR: %p already free (%s : %s)", id,
-                  magic2str[magic].c_str(), str.c_str());
+        cvk_error("ERROR: %p already free (%s : %s-%d)", id,
+                  magic2str[magic].c_str(), str.c_str(), size);
         return;
     }
-    cvk_error("free %p %s: %s-%s", id, find->second.first.c_str(),
-              find->second.second.c_str(), str.c_str());
+    if (size != std::get<2>(find->second)) {
+        cvk_error("ERROR: %p size mismtached expected %d got %d (%s : %s)", id,
+                  std::get<2>(find->second), size, magic2str[magic].c_str(),
+                  str.c_str());
+    }
+    cvk_error("free %p %s: %s-%s-%d (total: %d)", id,
+              std::get<0>(find->second).c_str(),
+              std::get<1>(find->second).c_str(), str.c_str(), size,
+              vmem);
 
     alloc.erase(id);
 }
 
-void alloc_add(void* id, object_magic magic) { alloc_add(id, magic, "#"); }
+void alloc_add(void* id, object_magic magic) { alloc_add(id, magic, "#", 0); }
 
-void alloc_del(void* id, object_magic magic) { alloc_del(id, magic, "#"); }
+void alloc_del(void* id, object_magic magic) { alloc_del(id, magic, "#", 0); }
 
 struct MemorySizes {
     VkDeviceSize allocatedMemory;

@@ -1244,9 +1244,10 @@ void cvk_program::do_build() {
         spir_data                                    // pCode
     };
 
+    auto vmem = getVirtualMem();
     VkResult res =
         vkCreateShaderModule(dev, &moduleCreateInfo, nullptr, &m_shader_module);
-    alloc_add(m_shader_module, object_magic::vk, "vkCreateShaderModule");
+    alloc_add(m_shader_module, object_magic::vk, "vkCreateShaderModule", vmem);
 
     if (res != VK_SUCCESS) {
         cvk_error("vkCreateShaderModule returned %d", res);
@@ -1360,8 +1361,9 @@ bool cvk_entry_point::build_descriptor_set_layout(
     VkResult res;
     if (bindings.size() > 0) {
         VkDescriptorSetLayout setLayout;
+        auto vmem = getVirtualMem();
         res = vkCreateDescriptorSetLayout(m_device, &createInfo, 0, &setLayout);
-        alloc_add(setLayout, object_magic::vk, "vkCreateDescriptorSetLayout");
+        alloc_add(setLayout, object_magic::vk, "vkCreateDescriptorSetLayout", vmem);
         if (res != VK_SUCCESS) {
             cvk_error("Could not create descriptor set layout");
             return false;
@@ -1643,9 +1645,10 @@ cl_int cvk_entry_point::init() {
         num_push_constant_ranges,
         &push_constant_range};
 
+    auto vmem = getVirtualMem();
     res = vkCreatePipelineLayout(m_device, &pipelineLayoutCreateInfo, 0,
                                  &m_pipeline_layout);
-    alloc_add(m_pipeline_layout, object_magic::vk, "vkCreatePipelineLayout");
+    alloc_add(m_pipeline_layout, object_magic::vk, "vkCreatePipelineLayout", vmem);
     if (res != VK_SUCCESS) {
         cvk_error("Could not create pipeline layout.");
         return CL_INVALID_VALUE;
@@ -1672,9 +1675,10 @@ cl_int cvk_entry_point::init() {
             poolSizes.data(),                                  // pPoolSizes
         };
 
+        auto vmem = getVirtualMem();
         res = vkCreateDescriptorPool(m_device, &descriptorPoolCreateInfo, 0,
                                      &m_descriptor_pool);
-        alloc_add(m_descriptor_pool, object_magic::vk, "vkCreateDescriptorPool");
+        alloc_add(m_descriptor_pool, object_magic::vk, "vkCreateDescriptorPool", vmem);
 
         if (res != VK_SUCCESS) {
             cvk_error("Could not create descriptor pool.");
@@ -1733,10 +1737,11 @@ cvk_entry_point::create_pipeline(const cvk_spec_constant_map& spec_constants) {
     };
 
     VkPipeline pipeline;
+    auto vmem = getVirtualMem();
     VkResult res =
         vkCreateComputePipelines(m_device, m_program->pipeline_cache(), 1,
                                  &createInfo, nullptr, &pipeline);
-    alloc_add(pipeline, object_magic::vk, "vkCreateComputePipelines");
+    alloc_add(pipeline, object_magic::vk, "vkCreateComputePipelines", vmem);
 
     if (res != VK_SUCCESS) {
         cvk_error_fn("Could not create compute pipeline: %s",

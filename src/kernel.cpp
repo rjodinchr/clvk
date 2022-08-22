@@ -148,13 +148,14 @@ bool cvk_kernel_argument_values::setup_descriptor_sets() {
     m_is_enqueued = true;
 
     // Allocate descriptor sets
+    auto vmem = getVirtualMem();
     if (!m_entry_point->allocate_descriptor_sets(descriptor_sets())) {
         return false;
     }
 
     for (auto ds : m_descriptor_sets) {
         if (ds != VK_NULL_HANDLE) {
-            alloc_add(ds, object_magic::vk, "vkAllocateDescriptorSets");
+            alloc_add(ds, object_magic::vk, "vkAllocateDescriptorSets", vmem);
         }
     }
 

@@ -77,11 +77,13 @@ struct cvk_device : public _cl_device_id,
     virtual ~cvk_device() {
         for (auto entry : m_pipeline_caches) {
             save_pipeline_cache(entry.first, entry.second);
+            auto vmem = getVirtualMem();
             vkDestroyPipelineCache(m_dev, entry.second, nullptr);
-            alloc_del(entry.second, object_magic::vk, "vkDestroyPipelineCache");
+            alloc_del(entry.second, object_magic::vk, "vkDestroyPipelineCache", vmem);
         }
+        auto vmem = getVirtualMem();
         vkDestroyDevice(m_dev, nullptr);
-        alloc_del(&m_dev, object_magic::vk, "vkDestroyDevice");
+        alloc_del(&m_dev, object_magic::vk, "vkDestroyDevice", vmem);
     }
 
 #ifdef CLVK_UNIT_TESTING_ENABLED

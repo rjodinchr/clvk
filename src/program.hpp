@@ -299,20 +299,24 @@ public:
         for (auto pipeline : m_pipelines) {
             cvk_info("destroying pipeline %p for kernel %s", pipeline.second,
                      m_name.c_str());
+            auto vmem = getVirtualMem();
             vkDestroyPipeline(m_device, pipeline.second, nullptr);
-            alloc_del(pipeline.second, object_magic::vk, "vkDestroyPipeline");
+            alloc_del(pipeline.second, object_magic::vk, "vkDestroyPipeline", vmem);
         }
         if (m_descriptor_pool != VK_NULL_HANDLE) {
+            auto vmem = getVirtualMem();
             vkDestroyDescriptorPool(m_device, m_descriptor_pool, nullptr);
-            alloc_del(m_descriptor_pool, object_magic::vk, "vkDestroyDescriptorPool");
+            alloc_del(m_descriptor_pool, object_magic::vk, "vkDestroyDescriptorPool", vmem);
         }
         if (m_pipeline_layout != VK_NULL_HANDLE) {
+            auto vmem = getVirtualMem();
             vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
-            alloc_del(m_pipeline_layout, object_magic::vk, "vkDestroyPipelineLayout");
+            alloc_del(m_pipeline_layout, object_magic::vk, "vkDestroyPipelineLayout", vmem);
         }
         for (auto layout : m_descriptor_set_layouts) {
+            auto vmem = getVirtualMem();
             vkDestroyDescriptorSetLayout(m_device, layout, nullptr);
-            alloc_del(layout, object_magic::vk, "vkDestroyDescriptorSetLayout");
+            alloc_del(layout, object_magic::vk, "vkDestroyDescriptorSetLayout", vmem);
         }
     }
 
@@ -325,8 +329,10 @@ public:
 
     void free_descriptor_set(VkDescriptorSet ds) {
         std::lock_guard<std::mutex> lock(m_descriptor_pool_lock);
-        alloc_del(ds, object_magic::vk, "vkFreeDescriptorSets");
+        auto rem_ds = ds;
+        auto vmem = getVirtualMem();
         vkFreeDescriptorSets(m_device, m_descriptor_pool, 1, &ds);
+        alloc_del(rem_ds, object_magic::vk, "vkFreeDescriptorSets", vmem);
     }
 
     uint32_t num_set_layouts() const { return m_descriptor_set_layouts.size(); }
@@ -438,9 +444,10 @@ struct cvk_program : public _cl_program, api_object<object_magic::program> {
     virtual ~cvk_program() {
         if (m_shader_module != VK_NULL_HANDLE) {
             auto vkdev = m_context->device()->vulkan_device();
+        auto vmem = getVirtualMem();
             vkDestroyShaderModule(vkdev, m_shader_module, nullptr);
             alloc_del(m_shader_module, object_magic::vk,
-                      "vkDestroyShaderModule");
+                      "vkDestroyShaderModule", vmem);
         }
         for (auto& s : m_literal_samplers) {
             s->release();
