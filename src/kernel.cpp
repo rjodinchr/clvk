@@ -151,6 +151,13 @@ bool cvk_kernel_argument_values::setup_descriptor_sets() {
     if (!m_entry_point->allocate_descriptor_sets(descriptor_sets())) {
         return false;
     }
+
+    for (auto ds : m_descriptor_sets) {
+        if (ds != VK_NULL_HANDLE) {
+            alloc_add(ds, object_magic::vk, "vkAllocateDescriptorSets");
+        }
+    }
+
     VkDescriptorSet* ds = descriptor_sets();
 
     // Make enough space to store all descriptor write structures

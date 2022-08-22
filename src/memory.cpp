@@ -96,6 +96,7 @@ bool cvk_buffer::init() {
     };
 
     VkResult res = vkCreateBuffer(vkdev, &createInfo, nullptr, &m_buffer);
+    alloc_add(m_buffer, object_magic::vk, "vkCreateBuffer");
 
     if (res != VK_SUCCESS) {
         return false;
@@ -228,6 +229,7 @@ bool cvk_sampler::init() {
     };
 
     auto res = vkCreateSampler(vkdev, &create_info, nullptr, &m_sampler);
+    alloc_add(m_sampler, object_magic::vk, "vkCreateSampler");
 
     return (res == VK_SUCCESS);
 }
@@ -353,6 +355,7 @@ bool cvk_image::init() {
     auto vkdev = device->vulkan_device();
 
     auto res = vkCreateImage(vkdev, &imageCreateInfo, nullptr, &m_image);
+    alloc_add(m_image, object_magic::vk, "vkCreateImage");
     if (res != VK_SUCCESS) {
         cvk_error_fn("Could not create image!");
         return false;
@@ -412,6 +415,7 @@ bool cvk_image::init() {
 
     res = vkCreateImageView(vkdev, &imageViewCreateInfo, nullptr,
                             &m_sampled_view);
+    alloc_add(m_sampled_view, object_magic::vk, "vkCreateImageView");
 
     if (res != VK_SUCCESS) {
         return false;
@@ -421,6 +425,7 @@ bool cvk_image::init() {
 
     res = vkCreateImageView(vkdev, &imageViewCreateInfo, nullptr,
                             &m_storage_view);
+    alloc_add(m_storage_view, object_magic::vk, "vkCreateImageView");
 
     if (res != VK_SUCCESS) {
         return false;

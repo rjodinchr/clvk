@@ -164,6 +164,7 @@ void clvk_global_state::init_vulkan() {
 
     res = vkCreateInstance(&info, nullptr, &m_vulkan_instance);
     CVK_VK_CHECK_FATAL(res, "Could not create the instance");
+    alloc_add(&m_vulkan_instance, object_magic::vk, "vkCreateInstance");
     cvk_info("Created the VkInstance");
 
     // Create debug callback
@@ -185,6 +186,7 @@ void clvk_global_state::init_vulkan() {
 
         res = func(m_vulkan_instance, &callbackInfo, nullptr,
                    &m_vulkan_debug_callback);
+        alloc_add(&m_vulkan_debug_callback, object_magic::vk, "vkCreateDebugReportCallbackEXT");
         CVK_VK_CHECK_FATAL(res, "Can't setup debug callback");
     } else {
         cvk_warn("VK_EXT_debug_report not enabled");
@@ -196,8 +198,10 @@ void clvk_global_state::term_vulkan() {
         auto func =
             CVK_VK_GET_INSTANCE_PROC(this, vkDestroyDebugReportCallbackEXT);
         func(m_vulkan_instance, m_vulkan_debug_callback, nullptr);
+        alloc_del(&m_vulkan_debug_callback, object_magic::vk, "vkDestroyDebugReportCallbackEXT");
     }
     vkDestroyInstance(m_vulkan_instance, nullptr);
+    alloc_del(&m_vulkan_instance, object_magic::vk, "vkDestroyInstance");
 }
 
 void clvk_global_state::init_platform() {
@@ -258,9 +262,9 @@ static clvk_global_state* gGlobalState;
 static std::once_flag gInitOnceFlag;
 
 static void destroy_global_state() {
+    delete gGlobalState;
     alloc_check();
     logMemoryReportStats();
-    delete gGlobalState;
 }
 
 static void init_global_state() {

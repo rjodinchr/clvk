@@ -387,13 +387,16 @@ VkResult cvk_command_pool::allocate_command_buffer(VkCommandBuffer* cmdbuf) {
         1 // commandBufferCount
     };
 
-    return vkAllocateCommandBuffers(m_device->vulkan_device(),
+    auto cb = vkAllocateCommandBuffers(m_device->vulkan_device(),
                                     &commandBufferAllocateInfo, cmdbuf);
+    alloc_add(*cmdbuf, object_magic::vk, "vkAllocateCommandBuffers");
+    return cb;
 }
 
 void cvk_command_pool::free_command_buffer(VkCommandBuffer buf) {
     std::lock_guard<std::mutex> lock(m_lock);
     vkFreeCommandBuffers(m_device->vulkan_device(), m_command_pool, 1, &buf);
+    alloc_del(buf, object_magic::vk, "vkFreeCommandBuffers");
 }
 
 bool cvk_command_buffer::begin() {
@@ -897,6 +900,7 @@ cl_int cvk_command_batchable::build(cvk_command_buffer& command_buffer) {
         auto vkdev = m_queue->device()->vulkan_device();
         auto res = vkCreateQueryPool(vkdev, &query_pool_create_info, nullptr,
                                      &m_query_pool);
+        alloc_add(m_query_pool, object_magic::vk, "vkCreateQueryPool");
         if (res != VK_SUCCESS) {
             return CL_OUT_OF_RESOURCES;
         }

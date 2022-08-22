@@ -8,6 +8,7 @@
 
 std::map<void*, std::pair<std::string, std::string>> alloc;
 std::map<object_magic, std::string> magic2str = {
+    {object_magic::vk, "vk"},
     {object_magic::platform, "platform"},
     {object_magic::device, "device"},
     {object_magic::context, "context"},
@@ -20,7 +21,10 @@ std::map<object_magic, std::string> magic2str = {
 };
 
 void alloc_update_desc(void* id, std::string str) {
-    CVK_ASSERT(alloc.find(id) != alloc.end());
+    if (alloc.find(id) == alloc.end()) {
+        cvk_error("ERROR: %p does not exist (%s)", id, str.c_str());
+        return;
+    }
     alloc[id].second = str;
     cvk_error("update %p %s: %s", id, alloc[id].first.c_str(),
               alloc[id].second.c_str());
@@ -33,28 +37,35 @@ void alloc_check() {
     }
 }
 
-void alloc_add(void* id, object_magic magic) {
-    cvk_error("alloc %p %s", (void*)id, magic2str[magic].c_str());
+void alloc_add(void* id, object_magic magic, std::string str) {
+    cvk_error("alloc %p %s-%s", (void*)id, magic2str[magic].c_str(),
+              str.c_str());
     auto find = alloc.find(id);
     if (find != alloc.end()) {
-        cvk_error("ERROR: %p already allocated (%s: %s)", id,
-                  find->second.first.c_str(), find->second.second.c_str());
-        CVK_ASSERT(false);
+        cvk_error("ERROR: %p already allocated (%s: %s-%s)", id,
+                  find->second.first.c_str(), find->second.second.c_str(),
+                  str.c_str());
+        return;
     }
-    alloc[id] = std::make_pair(magic2str[magic], "#");
+    alloc[id] = std::make_pair(magic2str[magic], str);
 }
 
-void alloc_del(void* id, object_magic magic) {
+void alloc_del(void* id, object_magic magic, std::string str) {
     auto find = alloc.find(id);
     if (find == alloc.end()) {
-        cvk_error("ERROR: %p already free (%s)", id, magic2str[magic].c_str());
-        CVK_ASSERT(false);
+        cvk_error("ERROR: %p already free (%s : %s)", id,
+                  magic2str[magic].c_str(), str.c_str());
+        return;
     }
-    cvk_error("free %p %s: %s", id, find->second.first.c_str(),
-              find->second.second.c_str());
+    cvk_error("free %p %s: %s-%s", id, find->second.first.c_str(),
+              find->second.second.c_str(), str.c_str());
 
     alloc.erase(id);
 }
+
+void alloc_add(void* id, object_magic magic) { alloc_add(id, magic, "#"); }
+
+void alloc_del(void* id, object_magic magic) { alloc_del(id, magic, "#"); }
 
 struct MemorySizes {
     VkDeviceSize allocatedMemory;

@@ -86,6 +86,7 @@ struct cvk_command_pool {
         if (m_command_pool != VK_NULL_HANDLE) {
             vkDestroyCommandPool(m_device->vulkan_device(), m_command_pool,
                                  nullptr);
+            alloc_del(m_command_pool, object_magic::vk, "vkDestroyCommandPool");
         }
     }
 
@@ -101,8 +102,10 @@ struct cvk_command_pool {
             VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, nullptr, flags,
             m_queue_family};
 
-        return vkCreateCommandPool(m_device->vulkan_device(), &createInfo,
+        auto cp= vkCreateCommandPool(m_device->vulkan_device(), &createInfo,
                                    nullptr, &m_command_pool);
+        alloc_add(m_command_pool, object_magic::vk, "vkCreateCommandPool");
+        return cp;
     }
 
     VkResult allocate_command_buffer(VkCommandBuffer* buf);
@@ -569,6 +572,7 @@ struct cvk_command_batchable : public cvk_command {
         if (m_query_pool != VK_NULL_HANDLE) {
             auto vkdev = m_queue->device()->vulkan_device();
             vkDestroyQueryPool(vkdev, m_query_pool, nullptr);
+            alloc_del(m_query_pool, object_magic::vk, "vkDestroyQueryPool");
         }
     }
 

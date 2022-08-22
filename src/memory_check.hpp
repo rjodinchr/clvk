@@ -7,9 +7,13 @@ void alloc_check();
 
 void alloc_update_desc(void* id, std::string str);
 
-void alloc_add(void *id, object_magic magic);
+void alloc_add(void* id, object_magic magic, std::string str);
 
-void alloc_del(void *id, object_magic magic);
+void alloc_del(void* id, object_magic magic, std::string str);
+
+void alloc_add(void* id, object_magic magic);
+
+void alloc_del(void* id, object_magic magic);
 
 void logMemoryReportStats();
 

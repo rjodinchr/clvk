@@ -35,6 +35,7 @@
 
 enum class object_magic : uint32_t
 {
+    vk = 0x0,
     platform = 0x11223344U,
     device = 0x22334455U,
     context = 0x33445566U,

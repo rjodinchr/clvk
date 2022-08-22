@@ -1246,6 +1246,7 @@ void cvk_program::do_build() {
 
     VkResult res =
         vkCreateShaderModule(dev, &moduleCreateInfo, nullptr, &m_shader_module);
+    alloc_add(m_shader_module, object_magic::vk, "vkCreateShaderModule");
 
     if (res != VK_SUCCESS) {
         cvk_error("vkCreateShaderModule returned %d", res);
@@ -1360,6 +1361,7 @@ bool cvk_entry_point::build_descriptor_set_layout(
     if (bindings.size() > 0) {
         VkDescriptorSetLayout setLayout;
         res = vkCreateDescriptorSetLayout(m_device, &createInfo, 0, &setLayout);
+        alloc_add(setLayout, object_magic::vk, "vkCreateDescriptorSetLayout");
         if (res != VK_SUCCESS) {
             cvk_error("Could not create descriptor set layout");
             return false;
@@ -1643,6 +1645,7 @@ cl_int cvk_entry_point::init() {
 
     res = vkCreatePipelineLayout(m_device, &pipelineLayoutCreateInfo, 0,
                                  &m_pipeline_layout);
+    alloc_add(m_pipeline_layout, object_magic::vk, "vkCreatePipelineLayout");
     if (res != VK_SUCCESS) {
         cvk_error("Could not create pipeline layout.");
         return CL_INVALID_VALUE;
@@ -1671,6 +1674,7 @@ cl_int cvk_entry_point::init() {
 
         res = vkCreateDescriptorPool(m_device, &descriptorPoolCreateInfo, 0,
                                      &m_descriptor_pool);
+        alloc_add(m_descriptor_pool, object_magic::vk, "vkCreateDescriptorPool");
 
         if (res != VK_SUCCESS) {
             cvk_error("Could not create descriptor pool.");
@@ -1732,6 +1736,7 @@ cvk_entry_point::create_pipeline(const cvk_spec_constant_map& spec_constants) {
     VkResult res =
         vkCreateComputePipelines(m_device, m_program->pipeline_cache(), 1,
                                  &createInfo, nullptr, &pipeline);
+    alloc_add(pipeline, object_magic::vk, "vkCreateComputePipelines");
 
     if (res != VK_SUCCESS) {
         cvk_error_fn("Could not create compute pipeline: %s",

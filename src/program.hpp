@@ -300,15 +300,19 @@ public:
             cvk_info("destroying pipeline %p for kernel %s", pipeline.second,
                      m_name.c_str());
             vkDestroyPipeline(m_device, pipeline.second, nullptr);
+            alloc_del(pipeline.second, object_magic::vk, "vkDestroyPipeline");
         }
         if (m_descriptor_pool != VK_NULL_HANDLE) {
             vkDestroyDescriptorPool(m_device, m_descriptor_pool, nullptr);
+            alloc_del(m_descriptor_pool, object_magic::vk, "vkDestroyDescriptorPool");
         }
         if (m_pipeline_layout != VK_NULL_HANDLE) {
             vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
+            alloc_del(m_pipeline_layout, object_magic::vk, "vkDestroyPipelineLayout");
         }
         for (auto layout : m_descriptor_set_layouts) {
             vkDestroyDescriptorSetLayout(m_device, layout, nullptr);
+            alloc_del(layout, object_magic::vk, "vkDestroyDescriptorSetLayout");
         }
     }
 
@@ -321,6 +325,7 @@ public:
 
     void free_descriptor_set(VkDescriptorSet ds) {
         std::lock_guard<std::mutex> lock(m_descriptor_pool_lock);
+        alloc_del(ds, object_magic::vk, "vkFreeDescriptorSets");
         vkFreeDescriptorSets(m_device, m_descriptor_pool, 1, &ds);
     }
 
@@ -434,6 +439,8 @@ struct cvk_program : public _cl_program, api_object<object_magic::program> {
         if (m_shader_module != VK_NULL_HANDLE) {
             auto vkdev = m_context->device()->vulkan_device();
             vkDestroyShaderModule(vkdev, m_shader_module, nullptr);
+            alloc_del(m_shader_module, object_magic::vk,
+                      "vkDestroyShaderModule");
         }
         for (auto& s : m_literal_samplers) {
             s->release();

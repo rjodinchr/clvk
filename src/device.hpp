@@ -78,8 +78,10 @@ struct cvk_device : public _cl_device_id,
         for (auto entry : m_pipeline_caches) {
             save_pipeline_cache(entry.first, entry.second);
             vkDestroyPipelineCache(m_dev, entry.second, nullptr);
+            alloc_del(entry.second, object_magic::vk, "vkDestroyPipelineCache");
         }
         vkDestroyDevice(m_dev, nullptr);
+        alloc_del(&m_dev, object_magic::vk, "vkDestroyDevice");
     }
 
 #ifdef CLVK_UNIT_TESTING_ENABLED

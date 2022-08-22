@@ -551,6 +551,7 @@ bool cvk_device::create_vulkan_queues_and_device(uint32_t num_queues,
     };
 
     VkResult res = vkCreateDevice(m_pdev, &createInfo, nullptr, &m_dev);
+    alloc_add(&m_dev, object_magic::vk, "vkCreateDevice");
     CVK_VK_CHECK_ERROR_RET(res, false, "Failed to create a device");
 
     // Construct the queue wrappers now that our queues exist
@@ -697,6 +698,7 @@ bool cvk_device::get_pipeline_cache(const std::vector<uint32_t>& spirv,
 
     VkResult res = vkCreatePipelineCache(m_dev, &pipelineCacheCreateInfo,
                                          nullptr, &pipeline_cache);
+    alloc_add(pipeline_cache, object_magic::vk, "vkCreatePipelineCache");
     if (res != VK_SUCCESS) {
         cvk_error("Could not create pipeline cache.");
         return false;
