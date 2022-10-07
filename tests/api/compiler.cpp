@@ -192,3 +192,193 @@ TEST_F(WithCommandQueue, ModuleScopeConstantData) {
     EXPECT_EQ(result[4], 0);
     EXPECT_EQ(result[5], 0);
 }
+
+TEST_F(WithCommandQueue, ProgramBinaryCompile) {
+    static const char* source = R"(
+      kernel void test(global uint *output) {
+        uint gid = get_global_id(0);
+        output[gid] = gid;
+      }
+    )";
+    auto program = CreateProgram(source);
+    const size_t gws = 4;
+    const size_t buffer_size = gws * sizeof(cl_uint);
+    auto buffer = CreateBuffer(CL_MEM_WRITE_ONLY, buffer_size);
+    cl_uint result[gws] = {0};
+    ASSERT_EQ(buffer_size, sizeof(result));
+
+    CompileProgram(program);
+    ASSERT_EQ(GetProgramBinaryType(program),
+              CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT);
+    auto compiled_binary = GetProgramBinary(program);
+    auto binary_program = CreateProgramWithBinary(compiled_binary);
+    ASSERT_EQ(GetProgramBinaryType(binary_program),
+              CL_PROGRAM_BINARY_TYPE_COMPILED_OBJECT);
+
+    BuildProgram(binary_program);
+    auto kernel = CreateKernel(binary_program, "test");
+    SetKernelArg(kernel, 0, buffer);
+
+    EnqueueNDRangeKernel(kernel, 1, nullptr, &gws, nullptr);
+    EnqueueReadBuffer(buffer, CL_BLOCKING, 0, buffer_size, result);
+
+    ASSERT_EQ(result[0], 0);
+    ASSERT_EQ(result[1], 1);
+    ASSERT_EQ(result[2], 2);
+    ASSERT_EQ(result[3], 3);
+}
+
+TEST_F(WithCommandQueue, ProgramBinaryLinkLibrary) {
+    static const char* source = R"(
+      kernel void test(global uint *output) {
+        uint gid = get_global_id(0);
+        output[gid] = gid;
+      }
+    )";
+    auto program = CreateProgram(source);
+    CompileProgram(program);
+    const size_t gws = 4;
+    const size_t buffer_size = gws * sizeof(cl_uint);
+    auto buffer = CreateBuffer(CL_MEM_WRITE_ONLY, buffer_size);
+    cl_uint result[gws] = {0};
+    ASSERT_EQ(buffer_size, sizeof(result));
+
+    cl_program program_list = program;
+    auto linked_program = LinkProgram(1, &program_list, "-create-library");
+    ASSERT_EQ(GetProgramBinaryType(linked_program),
+              CL_PROGRAM_BINARY_TYPE_LIBRARY);
+    auto linked_binary = GetProgramBinary(linked_program);
+    auto binary_program = CreateProgramWithBinary(linked_binary);
+    ASSERT_EQ(GetProgramBinaryType(binary_program),
+              CL_PROGRAM_BINARY_TYPE_LIBRARY);
+
+    BuildProgram(binary_program);
+    auto kernel = CreateKernel(binary_program, "test");
+    SetKernelArg(kernel, 0, buffer);
+
+    EnqueueNDRangeKernel(kernel, 1, nullptr, &gws, nullptr);
+    EnqueueReadBuffer(buffer, CL_BLOCKING, 0, buffer_size, result);
+
+    ASSERT_EQ(result[0], 0);
+    ASSERT_EQ(result[1], 1);
+    ASSERT_EQ(result[2], 2);
+    ASSERT_EQ(result[3], 3);
+}
+
+TEST_F(WithCommandQueue, ProgramBinaryLink) {
+    static const char* source = R"(
+      kernel void test(global uint *output) {
+        uint gid = get_global_id(0);
+        output[gid] = gid;
+      }
+    )";
+    auto program = CreateProgram(source);
+    CompileProgram(program);
+    const size_t gws = 4;
+    const size_t buffer_size = gws * sizeof(cl_uint);
+    auto buffer = CreateBuffer(CL_MEM_WRITE_ONLY, buffer_size);
+    cl_uint result[gws] = {0};
+    ASSERT_EQ(buffer_size, sizeof(result));
+
+    cl_program program_list = program;
+    auto linked_program = LinkProgram(1, &program_list);
+    ASSERT_EQ(GetProgramBinaryType(linked_program),
+              CL_PROGRAM_BINARY_TYPE_EXECUTABLE);
+    auto linked_binary = GetProgramBinary(linked_program);
+    auto binary_program = CreateProgramWithBinary(linked_binary);
+    ASSERT_EQ(GetProgramBinaryType(binary_program),
+              CL_PROGRAM_BINARY_TYPE_EXECUTABLE);
+
+    BuildProgram(binary_program);
+    auto kernel = CreateKernel(binary_program, "test");
+    SetKernelArg(kernel, 0, buffer);
+
+    EnqueueNDRangeKernel(kernel, 1, nullptr, &gws, nullptr);
+    EnqueueReadBuffer(buffer, CL_BLOCKING, 0, buffer_size, result);
+
+    ASSERT_EQ(result[0], 0);
+    ASSERT_EQ(result[1], 1);
+    ASSERT_EQ(result[2], 2);
+    ASSERT_EQ(result[3], 3);
+}
+
+TEST_F(WithCommandQueue, ProgramBinaryExecutable) {
+    static const char* source = R"(
+      kernel void test(global uint *output) {
+        uint gid = get_global_id(0);
+        output[gid] = gid;
+      }
+    )";
+    auto program = CreateProgram(source);
+    const size_t gws = 4;
+    const size_t buffer_size = gws * sizeof(cl_uint);
+    auto buffer = CreateBuffer(CL_MEM_WRITE_ONLY, buffer_size);
+    cl_uint result[gws] = {0};
+    ASSERT_EQ(buffer_size, sizeof(result));
+
+    BuildProgram(program);
+    ASSERT_EQ(GetProgramBinaryType(program), CL_PROGRAM_BINARY_TYPE_EXECUTABLE);
+    auto built_binary = GetProgramBinary(program);
+    auto binary_program = CreateProgramWithBinary(built_binary);
+    ASSERT_EQ(GetProgramBinaryType(binary_program),
+              CL_PROGRAM_BINARY_TYPE_EXECUTABLE);
+
+    BuildProgram(binary_program);
+    auto kernel = CreateKernel(binary_program, "test");
+    SetKernelArg(kernel, 0, buffer);
+
+    EnqueueNDRangeKernel(kernel, 1, nullptr, &gws, nullptr);
+    EnqueueReadBuffer(buffer, CL_BLOCKING, 0, buffer_size, result);
+
+    ASSERT_EQ(result[0], 0);
+    ASSERT_EQ(result[1], 1);
+    ASSERT_EQ(result[2], 2);
+    ASSERT_EQ(result[3], 3);
+}
+
+TEST_F(WithCommandQueue, LinkPrograms) {
+    static const char* sourceA = R"(
+      extern void bar(global uint *dst, global uint *src);
+
+      kernel void foo(global uint *dst, global uint *src) {
+        bar(dst, src);
+      }
+    )";
+    static const char* sourceB = R"(
+      void bar(global uint *dst, global uint *src);
+
+      void bar(global uint *dst, global uint *src) {
+        int gid = get_global_id(0);
+        dst[gid] = src[gid];
+      }
+    )";
+
+    auto programA = CreateProgram(sourceA);
+    CompileProgram(programA);
+
+    auto programB = CreateProgram(sourceB);
+    CompileProgram(programB);
+
+    cl_program program_list[2] = {programA, programB};
+    auto program = LinkProgram(2, program_list);
+
+    const size_t gws = 4;
+    const size_t buffer_size = gws * sizeof(cl_uint);
+    cl_uint source[gws] = {1, 2, 3, 4};
+    cl_uint result[gws] = {0};
+    auto buffer_src = CreateBuffer(CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   buffer_size, source);
+    auto buffer_dst = CreateBuffer(CL_MEM_WRITE_ONLY, buffer_size);
+    ASSERT_EQ(buffer_size, sizeof(result));
+    auto kernel = CreateKernel(program, "foo");
+    SetKernelArg(kernel, 0, buffer_dst);
+    SetKernelArg(kernel, 1, buffer_src);
+
+    EnqueueNDRangeKernel(kernel, 1, nullptr, &gws, nullptr);
+    EnqueueReadBuffer(buffer_dst, CL_BLOCKING, 0, buffer_size, result);
+
+    ASSERT_EQ(result[0], source[0]);
+    ASSERT_EQ(result[1], source[1]);
+    ASSERT_EQ(result[2], source[2]);
+    ASSERT_EQ(result[3], source[3]);
+}
