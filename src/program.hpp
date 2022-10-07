@@ -634,8 +634,35 @@ struct cvk_program : public _cl_program, api_object<object_magic::program> {
 private:
     void do_build();
     std::string prepare_build_options(const cvk_device* device) const;
-    CHECK_RETURN cl_build_status compile_source(const cvk_device* device);
-    CHECK_RETURN cl_build_status link();
+    CHECK_RETURN cl_build_status build_source(const cvk_device* device);
+
+#if COMPILER_AVAILABLE
+    struct temp_file_deletion_stack {
+
+        ~temp_file_deletion_stack() {
+            if (!config.keep_temporaries) {
+                for (auto path = m_paths.rbegin(); path < m_paths.rend();
+                     ++path) {
+                    std::remove((*path).c_str());
+                }
+            }
+        }
+
+        void push(const std::string& path) { m_paths.push_back(path); }
+
+    private:
+        std::vector<std::string> m_paths;
+    };
+#ifndef CLSPV_ONLINE_COMPILER
+    CHECK_RETURN cl_build_status build_source_offline(
+        bool build_to_ir, bool build_from_il, std::string& build_options,
+        std::string& tmp_folder, temp_file_deletion_stack& temps);
+#else
+    CHECK_RETURN cl_build_status build_source_online(
+        bool build_to_ir, bool build_from_il, std::string& build_options);
+#endif
+#endif
+
     void prepare_push_constant_range();
 
     /// Check if all of the capabilities required by the SPIR-V module are
@@ -653,6 +680,7 @@ private:
     std::mutex m_lock;
     std::unique_ptr<std::thread> m_thread;
     std::string m_source;
+    std::string m_ir;
     std::vector<uint8_t> m_il;
     VkShaderModule m_shader_module;
     std::unordered_map<const cvk_device*, std::atomic<cl_build_status>>
