@@ -308,8 +308,6 @@ static inline cvk_command_queue* icd_downcast(cl_command_queue queue) {
     return static_cast<cvk_command_queue*>(queue);
 }
 
-using cvk_queue_holder = refcounted_holder<cvk_command_queue>;
-
 struct cvk_command_pool_lock_holder {
     cvk_command_pool_lock_holder(cvk_command_queue* queue) : m_queue(queue) {
         m_queue->command_pool_lock();
@@ -417,7 +415,8 @@ struct cvk_command {
 
     cvk_command(cl_command_type type, cvk_command_queue* queue)
         : m_type(type), m_queue(queue),
-          m_event(new cvk_event_command(m_queue->context(), this, queue)) {}
+          m_event(new cvk_event_command(m_queue->context(), this, queue)),
+          part_of_api_command_buffer(false) {}
 
     virtual ~cvk_command() {
         for (auto& event : m_event_deps) {
@@ -522,6 +521,23 @@ struct cvk_command {
         return CL_SUCCESS;
     }
 
+    void reset_event() {
+        for (auto evt : m_event_deps) {
+            evt->release();
+        }
+        m_event_deps.clear();
+
+        m_event->release();
+        m_event = new cvk_event_command(m_queue->context(), this, m_queue);
+    }
+
+    bool is_part_of_api_command_buffer() {
+        return part_of_api_command_buffer;
+    }
+    void set_part_of_api_command_buffer() {
+        part_of_api_command_buffer = true;
+    }
+
 protected:
     cl_command_type m_type;
     cvk_command_queue_holder m_queue;
@@ -531,6 +547,7 @@ private:
     CHECK_RETURN virtual cl_int do_action() = 0;
 
     std::vector<cvk_event*> m_event_deps;
+    bool part_of_api_command_buffer;
 };
 
 struct cvk_command_buffer_base : public cvk_command {
@@ -820,8 +837,14 @@ struct cvk_command_kernel final : public cvk_command_batchable {
     cvk_command_kernel(cvk_command_queue* q, cvk_kernel* kernel, uint32_t dims,
                        const cvk_ndrange& ndrange)
         : cvk_command_batchable(CL_COMMAND_NDRANGE_KERNEL, q), m_kernel(kernel),
-          m_dimensions(dims), m_ndrange(ndrange), m_pipeline(VK_NULL_HANDLE),
-          m_argument_values(nullptr) {}
+          m_dimensions(dims), m_ndrange(ndrange), m_pipeline(VK_NULL_HANDLE) {
+        m_argument_values = m_kernel->argument_values();
+        m_argument_values->retain_resources();
+        if (!m_argument_values->setup_descriptor_sets()) {
+            m_argument_values->release_resources();
+            m_argument_values = nullptr;
+        }
+    }
 
     ~cvk_command_kernel() {
         if (m_argument_values) {
@@ -872,6 +895,14 @@ private:
 struct cvk_command_batch : public cvk_command {
     cvk_command_batch(cvk_command_queue* queue)
         : cvk_command(CLVK_COMMAND_BATCH, queue), m_submitted(false) {}
+
+    ~cvk_command_batch() {
+        for (auto cmd : m_commands) {
+            if (!cmd->is_part_of_api_command_buffer()) {
+                delete cmd;
+            }
+        }
+    }
 
     cl_int add_command(cvk_command_batchable* cmd) {
         if (!m_command_buffer) {
@@ -948,11 +979,21 @@ struct cvk_command_batch : public cvk_command {
         return m_commands.back()->event();
     }
 
+    const std::vector<cvk_mem*> memory_objects() const override {
+        std::vector<cvk_mem*> objects;
+        for (auto& cmd : m_commands) {
+            for (auto obj : cmd->memory_objects()) {
+                objects.push_back(obj);
+            }
+        }
+        return objects;
+    }
+
 private:
     CHECK_RETURN cl_int do_action() override final;
 
     bool m_submitted;
-    std::vector<std::unique_ptr<cvk_command_batchable>> m_commands;
+    std::vector<cvk_command_batchable*> m_commands;
     std::unique_ptr<cvk_command_buffer> m_command_buffer;
 };
 
