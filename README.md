@@ -505,6 +505,10 @@ using the name of the corresponding environment variable.
   can be a work-around when having issues with clang compiling in the
   application thread.
 
+* `CLVK_DEVICE_EXTENSIONS` specifies extensions to be added to the list of
+  exposed extensions by `clGetDeviceInfo` in `CL_DEVICE_EXTENSIONS`. It
+  expects a whitespace separated list of extensions.
+
 # Limitations
 
 * Only one device per CL context
