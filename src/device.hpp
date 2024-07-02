@@ -551,6 +551,15 @@ struct cvk_device : public _cl_device_id,
 
     CHECK_RETURN bool has_timer_support() const { return m_has_timer_support; }
 
+    CHECK_RETURN bool has_timeline_semaphore_support() const {
+        return m_features_timeline_semaphore.timelineSemaphore;
+    }
+
+    CHECK_RETURN uint64_t maxTimelineSemaphoreValueDifference() const {
+        return m_timeline_semaphore_properties
+            .maxTimelineSemaphoreValueDifference;
+    }
+
     CHECK_RETURN cl_int get_device_host_timer(cl_ulong* dev_ts,
                                               cl_ulong* host_ts) const;
     cl_ulong device_timer_to_host(cl_ulong dev);
@@ -680,6 +689,7 @@ private:
     VkPhysicalDeviceSubgroupSizeControlProperties
         m_subgroup_size_control_properties{};
     VkPhysicalDevicePCIBusInfoPropertiesEXT m_pci_bus_info_properties;
+    VkPhysicalDeviceTimelineSemaphoreProperties m_timeline_semaphore_properties;
     // Vulkan features
     VkPhysicalDeviceFeatures2 m_features{};
     VkPhysicalDeviceVariablePointerFeatures m_features_variable_pointer{};
@@ -697,6 +707,7 @@ private:
     VkPhysicalDeviceBufferDeviceAddressFeaturesKHR
         m_features_buffer_device_address{};
     VkPhysicalDeviceFloatControlsProperties m_float_controls_properties{};
+    VkPhysicalDeviceTimelineSemaphoreFeatures m_features_timeline_semaphore{};
     VkPhysicalDeviceGlobalPriorityQueryFeaturesKHR
         m_features_queue_global_priority{};
 
