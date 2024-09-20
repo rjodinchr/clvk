@@ -122,7 +122,13 @@ struct cvk_device_properties_intel : public cvk_device_properties {
         return "-hack-mul-extended -hack-convert-to-float "
                "-hack-image1d-buffer-bgra";
     }
-    uint32_t get_preferred_subgroup_size() const override final { return 16; }
+    uint32_t get_preferred_subgroup_size() const override final {
+        if (!old_devices()) {
+            return 16;
+        } else {
+            return cvk_device_properties::get_preferred_subgroup_size();
+        }
+    }
     bool
     is_bgra_format_not_supported_for_image1d_buffer() const override final {
         return true;
