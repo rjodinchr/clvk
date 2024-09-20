@@ -398,11 +398,10 @@ cl_int cvk_command_group::execute_cmds(bool poll) {
         // Deleting batch with many commands can take a while. Trace it to be
         // able to understand it easily.
         TRACE_BEGIN("delete_cmd");
-        delete cmd;
         // TODO explain lifetime
-        // if (!cmd->is_part_of_api_command_buffer()) {
-        //    delete cmd;
-        // }
+        if (!cmd->is_part_of_api_command_buffer()) {
+            delete cmd;
+        }
         TRACE_END();
     }
     return global_status;
@@ -659,7 +658,7 @@ void cvk_command_pool::free_command_buffer(VkCommandBuffer buf) {
 }
 
 bool cvk_command_buffer::begin() {
-
+    CVK_ASSERT(m_command_buffer == VK_NULL_HANDLE);
     if (!m_queue->allocate_command_buffer(&m_command_buffer)) {
         return false;
     }
@@ -1132,8 +1131,10 @@ cvk_command_kernel::build_batchable_inner(cvk_command_buffer& command_buffer) {
     // TODO CL_INVALID_KERNEL_ARGS if the kernel argument values have not been
     // specified.
 
-    m_argument_values = m_kernel->argument_values();
-    m_argument_values->retain_resources();
+    if (m_argument_values == nullptr) {
+        m_argument_values = m_kernel->argument_values();
+        m_argument_values->retain_resources();
+    }
 
     // Setup descriptors
     if (!m_argument_values->setup_descriptor_sets()) {
