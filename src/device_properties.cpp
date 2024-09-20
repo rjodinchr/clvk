@@ -44,6 +44,8 @@ struct cvk_device_properties_mali : public cvk_device_properties {
         return cvk_device_properties::get_poll_main_thread();
     }
 
+    bool reuse_descriptor_set() const override final { return true; }
+
 private:
     const uint32_t m_deviceID;
 };
