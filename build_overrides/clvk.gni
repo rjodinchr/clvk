@@ -1,0 +1,3 @@
+clvk_include_dirs_to_append = [ "//external/OpenCL-Headers/" ]
+clvk_ldflags_to_append = [ "-lvulkan" ]
+clvk_deps_to_append = []

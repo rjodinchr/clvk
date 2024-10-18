@@ -1,0 +1,4 @@
+executable("simple_test") {
+  sources = [ "simple.cpp" ]
+  deps = [ "../../src:OpenCL" ]
+}

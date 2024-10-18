@@ -1,0 +1,58 @@
+import("//build_overrides/clspv.gni")
+import("//build_overrides/clvk.gni")
+import("//build_overrides/spirv_tools.gni")
+
+shared_library("OpenCL") {
+  sources = [
+    "api.cpp",
+    "config.cpp",
+    "device.cpp",
+    "device_properties.cpp",
+    "event.cpp",
+    "image_format.cpp",
+    "init.cpp",
+    "kernel.cpp",
+    "log.cpp",
+    "memory.cpp",
+    "printf.cpp",
+    "program.cpp",
+    "queue.cpp",
+    "queue_controller.cpp",
+    "semaphore.cpp",
+    "sha1.cpp",
+    "tracing.cpp",
+    "unit.cpp",
+    "utils.cpp",
+  ]
+
+  deps = [
+    "${spirv_tools_dir}:spvtools_opt",
+    "${spirv_tools_dir}:spvtools_link",
+    "//${clspv_dir}/lib:clspv_core_static",
+  ]
+  deps += clvk_deps_to_append
+
+  include_dirs = [
+    "//${clspv_dir}/include",
+    "${spirv_tools_spirv_headers_dir}/include",
+    "${spirv_tools_dir}/include",
+  ]
+  include_dirs += clvk_include_dirs_to_append
+
+  inputs = [
+    "exports.map",
+  ]
+
+  ldflags = [
+    "-Wl,--version-script=" + rebase_path("exports.map", root_build_dir),
+    "-Wl,-Bsymbolic",
+  ]
+  ldflags += clvk_ldflags_to_append
+
+  defines = [
+    "CLSPV_ONLINE_COMPILER=1",
+    "COMPILER_AVAILABLE=1",
+  ]
+
+  configs -= clspv_configs_to_remove
+}

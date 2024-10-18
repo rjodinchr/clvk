@@ -1,0 +1,9 @@
+# LLVM source location
+clspv_llvm_dir = "//external/clspv/third_party/llvm"
+
+clspv_dir = "external/clspv/"
+
+clspv_configs_to_append = []
+clspv_configs_to_remove = []
+
+is_android = false
