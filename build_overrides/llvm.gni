@@ -1,0 +1,89 @@
+llvm_root_dir = "//external/clspv/third_party/llvm/"
+llvm_root_gen_dir = "${root_gen_dir}/external/clspv/third_party/llvm/"
+
+declare_args() {
+  is_debug = true
+  sysroot = ""
+  llvm_have_mallinfo2 = true
+  clang_base_path = "/usr/local/google/home/rjodin/work/clvk/external/clspv/third_party/llvm/llvm/build"
+  symbol_level = 0
+  is_clang = true
+  use_lld = true
+}
+
+# All targets will get this list of configs by default.
+# Targets can opt out of a config by removing it from their local configs list.
+# If you're adding global flags and don't need targets to be able to opt out,
+# add the flags to compiler_defaults, not to a new config.
+shared_binary_target_configs = [
+  "${llvm_root_dir}llvm/utils/gn/build:compiler_defaults",
+  "${llvm_root_dir}llvm/utils/gn/build:llvm_code",
+  "${llvm_root_dir}llvm/utils/gn/build:no_exceptions",
+  "${llvm_root_dir}llvm/utils/gn/build:no_rtti",
+  "${llvm_root_dir}llvm/utils/gn/build:thin_archive",
+  "${llvm_root_dir}llvm/utils/gn/build:warn_covered_switch_default",
+]
+
+llvm_compiled_action_bin_dir = "bin/"
+
+template("llvm_executable") {
+  executable(target_name) {
+    forward_variables_from(invoker, "*")
+  }
+}
+
+template("llvm_loadable_module") {
+  loadable_module(target_name) {
+    forward_variables_from(invoker, "*")
+  }
+}
+
+template("llvm_static_library") {
+  static_library(target_name) {
+    forward_variables_from(invoker, "*")
+  }
+}
+
+template("llvm_shared_library") {
+  shared_library(target_name) {
+    forward_variables_from(invoker, "*")
+  }
+}
+
+template("llvm_source_set") {
+  source_set(target_name) {
+    forward_variables_from(invoker, "*")
+  }
+}
+
+set_defaults("llvm_executable") {
+  configs = shared_binary_target_configs
+}
+set_defaults("llvm_loadable_module") {
+  configs = shared_binary_target_configs
+}
+set_defaults("llvm_static_library") {
+  configs = shared_binary_target_configs
+}
+set_defaults("llvm_shared_library") {
+  configs = shared_binary_target_configs + [ "${llvm_root_dir}llvm/utils/gn/build:zdefs" ]
+}
+set_defaults("llvm_source_set") {
+  configs = shared_binary_target_configs
+}
+
+set_defaults("executable") {
+  configs = shared_binary_target_configs
+}
+set_defaults("loadable_module") {
+  configs = shared_binary_target_configs
+}
+set_defaults("static_library") {
+  configs = shared_binary_target_configs
+}
+set_defaults("shared_library") {
+  configs = shared_binary_target_configs + [ "${llvm_root_dir}llvm/utils/gn/build:zdefs" ]
+}
+set_defaults("source_set") {
+  configs = shared_binary_target_configs
+}

@@ -1,0 +1,7 @@
+declare_args() {
+  build_with_chromium = false
+  ignore_elf32_limitations = true
+}
+
+is_win = false
+is_ios = false
