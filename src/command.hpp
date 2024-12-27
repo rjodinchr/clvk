@@ -67,8 +67,24 @@ struct cvk_api_command_buffer : public _cl_command_buffer_khr,
                 return CL_INCOMPATIBLE_COMMAND_QUEUE_KHR;
             }
         }
+        std::vector<cvk_command_queue*> queues_to_enqueue;
+        if (queues.size() == 0) {
+            for (auto queue : m_queues) {
+                queues_to_enqueue.push_back(queue);
+            }
+        } else {
+            for (auto queue : queues) {
+                queues_to_enqueue.push_back(queue);
+                if (m_commands.count(queue) != m_commands.count(m_queues[0])) {
+                    for (auto cmd : m_commands[m_queues[0]]) {
+                        m_commands[queue].push_back(cmd->clone(queue));
+                    }
+                }
+            }
+        }
+
         cl_int err = CL_SUCCESS;
-        for (auto queue : m_queues) {
+        for (auto queue : queues_to_enqueue) {
             for (auto cmd : m_commands[queue]) {
                 cmd->reset_event();
                 cmd->retain();
