@@ -77,6 +77,8 @@ struct cvk_device_properties {
         return config.poll_main_thread();
     }
 
+    virtual bool reuse_descriptor_set() const { return false; }
+
     virtual ~cvk_device_properties() {}
 };
 
