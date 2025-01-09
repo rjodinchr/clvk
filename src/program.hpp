@@ -430,6 +430,10 @@ public:
                      m_name.c_str());
             vkDestroyPipeline(vkdev, pipeline.second, nullptr);
         }
+        for (auto ds : m_available_descriptor_set) {
+            vkFreeDescriptorSets(m_device->vulkan_device(), m_descriptor_pool,
+                                 1, &ds);
+        }
         if (m_descriptor_pool != VK_NULL_HANDLE) {
             vkDestroyDescriptorPool(vkdev, m_descriptor_pool, nullptr);
         }
@@ -451,11 +455,16 @@ public:
     void free_descriptor_set(VkDescriptorSet ds) {
         TRACE_FUNCTION();
         std::lock_guard<std::mutex> lock(m_descriptor_pool_lock);
-        vkFreeDescriptorSets(m_device->vulkan_device(), m_descriptor_pool, 1,
-                             &ds);
-        m_nb_descriptor_set_allocated--;
-        TRACE_CNT(descriptor_set_allocated_counter,
-                  m_nb_descriptor_set_allocated);
+
+        if (m_device->reuse_descriptor_set()) {
+            m_available_descriptor_set.push_back(ds);
+        } else {
+            vkFreeDescriptorSets(m_device->vulkan_device(), m_descriptor_pool,
+                                 1, &ds);
+            m_nb_descriptor_set_allocated--;
+            TRACE_CNT(descriptor_set_allocated_counter,
+                      m_nb_descriptor_set_allocated);
+        }
     }
 
     uint32_t num_set_layouts() const { return m_descriptor_set_layouts.size(); }
@@ -496,6 +505,7 @@ public:
 
 private:
     const uint32_t MAX_INSTANCES = config.max_entry_points_instances;
+
 
     cvk_device* m_device;
     cvk_context* m_context;
@@ -562,6 +572,9 @@ private:
     TRACE_CNT_VAR(descriptor_set_allocated_counter);
 
     bool m_first_allocation_failure;
+
+    std::list<VkDescriptorSet> m_available_descriptor_set;
+    bool m_stop_allocate_descriptor_set;
 };
 
 struct cvk_program : public _cl_program, api_object<object_magic::program> {
