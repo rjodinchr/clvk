@@ -436,6 +436,7 @@ TEST_F(WithCommandQueue, FinishAfterFlush) {
         SetUserEventStatus(uevent, CL_COMPLETE);
         thread->join();
     }
+    clReleaseEvent(kevent);
 }
 
 #ifdef CLVK_UNIT_TESTING_ENABLED
