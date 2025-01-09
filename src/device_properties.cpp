@@ -152,6 +152,13 @@ struct cvk_device_properties_amd : public cvk_device_properties {
     std::string get_compile_options() const override final {
         return "-hack-convert-to-float";
     }
+
+    bool keep_memories_mapped() const override final {
+        if (config.keep_memories_mapped.set) {
+            return config.keep_memories_mapped();
+        }
+        return true;
+    }
 };
 
 static bool isAMDDevice(const char* name, const uint32_t vendorID) {
