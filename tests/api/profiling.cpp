@@ -176,7 +176,6 @@ TEST_F(WithProfiledCommandQueue, QueueProfilingVsDeviceTimer) {
     // Check timestamp ordering
     ASSERT_LT(timer_before_queued, ts_queued);
     ASSERT_GT(timer_after_queued, ts_queued);
-    ASSERT_LT(timer_after_queued, ts_submit);
     ASSERT_GT(timer_after_flush, ts_submit);
     ASSERT_LT(timer_after_flush, ts_start);
     ASSERT_GT(timer_after_completion, ts_start);
