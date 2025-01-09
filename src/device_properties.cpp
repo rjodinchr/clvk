@@ -30,14 +30,24 @@ struct cvk_device_properties_mali : public cvk_device_properties {
         : m_deviceID(deviceID) {}
 
     bool is_non_uniform_decoration_broken() const override final {
-#define GPU_ID2_ARCH_MAJOR_SHIFT 28
-#define GPU_ID2_ARCH_MAJOR (0xF << GPU_ID2_ARCH_MAJOR_SHIFT)
         // bifrost support of non uniform decoration is broken
-        const uint32_t bifrost_arch_major = 8 << GPU_ID2_ARCH_MAJOR_SHIFT;
-        return (m_deviceID & GPU_ID2_ARCH_MAJOR) <= bifrost_arch_major;
+        const uint8_t bifrost_arch_major = 8;
+        return arch_major() <= bifrost_arch_major;
+    }
+
+    bool get_poll_main_thread() const override final {
+        if (!config.poll_main_thread.set) {
+            // Do not poll main thread by default starting from v13
+            return arch_major() < 13;
+        }
+        return cvk_device_properties::get_poll_main_thread();
     }
 
 private:
+    uint8_t arch_major() const {
+        const uint32_t arch_major_shift = 28;
+        return m_deviceID >> arch_major_shift;
+    }
     const uint32_t m_deviceID;
 };
 
@@ -118,6 +128,27 @@ struct cvk_device_properties_intel : public cvk_device_properties {
             {{CL_RGB, CL_UNORM_SHORT_565}});
         return disabled_formats;
     }
+
+    bool get_poll_main_thread() const override final {
+        if (!config.poll_main_thread.set) {
+            return old_devices();
+        }
+        return cvk_device_properties::get_poll_main_thread();
+    }
+
+    cvk_device_properties_intel(const uint32_t deviceID)
+        : m_deviceID(deviceID) {}
+
+private:
+    bool old_devices() const {
+        const uint32_t kabylakeDeviceID = 0x5900;
+        const uint32_t cometlakeDeviceID = 0x9b00;
+        const uint32_t geminilakeDeviceID = 0x3180;
+        return (m_deviceID & 0xff00) == kabylakeDeviceID ||
+               (m_deviceID & 0xff00) == cometlakeDeviceID ||
+               (m_deviceID & 0xfff0) == geminilakeDeviceID;
+    }
+    const uint32_t m_deviceID;
 };
 
 static bool isIntelDevice(const char* name, const uint32_t vendorID) {
@@ -293,7 +324,7 @@ std::unique_ptr<cvk_device_properties> create_cvk_device_properties(
     } else if (strcmp(name, "Adreno (TM) 640") == 0) {
         RETURN(cvk_device_properties_adreno_640);
     } else if (isIntelDevice(name, vendorID)) {
-        RETURN(cvk_device_properties_intel);
+        RETURN(cvk_device_properties_intel, deviceID);
     } else if (isAMDDevice(name, vendorID)) {
         RETURN(cvk_device_properties_amd);
     } else if (strcmp(name, "Samsung Xclipse 920") == 0) {
