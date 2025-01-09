@@ -73,6 +73,10 @@ struct cvk_device_properties {
         return config.keep_memories_mapped();
     }
 
+    virtual bool get_poll_main_thread() const {
+        return config.poll_main_thread();
+    }
+
     virtual ~cvk_device_properties() {}
 };
 
