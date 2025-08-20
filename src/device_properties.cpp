@@ -32,11 +32,14 @@ struct cvk_device_properties_mali : public cvk_device_properties_virtual {
         : m_deviceID(deviceID), m_driverID(driverID) {}
 
     bool non_uniform_decoration_broken() const override final {
-#define GPU_ID2_ARCH_MAJOR_SHIFT 28
-#define GPU_ID2_ARCH_MAJOR (0xF << GPU_ID2_ARCH_MAJOR_SHIFT)
         // bifrost support of non uniform decoration is broken
-        const uint32_t bifrost_arch_major = 8 << GPU_ID2_ARCH_MAJOR_SHIFT;
-        return (m_deviceID & GPU_ID2_ARCH_MAJOR) <= bifrost_arch_major;
+        const uint8_t bifrost_arch_major = 8;
+        return arch_major() <= bifrost_arch_major;
+    }
+
+    bool poll_main_thread() const override final {
+        // Do not poll main thread by default starting from v13
+        return arch_major() < 13;
     }
 
     bool reuse_descriptor_set() const override final {
@@ -44,6 +47,10 @@ struct cvk_device_properties_mali : public cvk_device_properties_virtual {
     }
 
 private:
+    uint8_t arch_major() const {
+        const uint32_t arch_major_shift = 28;
+        return m_deviceID >> arch_major_shift;
+    }
     const uint32_t m_deviceID;
     const VkDriverId m_driverID;
 };
@@ -118,7 +125,13 @@ struct cvk_device_properties_intel : public cvk_device_properties_virtual {
                "-hack-image1d-buffer-bgra";
     }
 #endif
-    uint32_t preferred_subgroup_size() const override final { return 16; }
+    uint32_t preferred_subgroup_size() const override final {
+        if (!old_devices()) {
+            return 16;
+        } else {
+            return cvk_device_properties_virtual::preferred_subgroup_size();
+        }
+    }
     bool bgra_format_not_supported_for_image1d_buffer() const override final {
         return true;
     }
@@ -126,6 +139,22 @@ struct cvk_device_properties_intel : public cvk_device_properties_virtual {
     image_format_set disabled_image_formats() const override final {
         return image_format_set{{CL_RGB, CL_UNORM_SHORT_565}};
     }
+
+    bool poll_main_thread() const override final { return old_devices(); }
+
+    cvk_device_properties_intel(const uint32_t deviceID)
+        : m_deviceID(deviceID) {}
+
+private:
+    bool old_devices() const {
+        const uint32_t kabylakeDeviceID = 0x5900;
+        const uint32_t cometlakeDeviceID = 0x9b00;
+        const uint32_t geminilakeDeviceID = 0x3180;
+        return (m_deviceID & 0xff00) == kabylakeDeviceID ||
+               (m_deviceID & 0xff00) == cometlakeDeviceID ||
+               (m_deviceID & 0xfff0) == geminilakeDeviceID;
+    }
+    const uint32_t m_deviceID;
 };
 
 static bool isIntelDevice(const char* name, const uint32_t vendorID) {
@@ -159,6 +188,8 @@ struct cvk_device_properties_amd : public cvk_device_properties_virtual {
         return "-hack-convert-to-float";
     }
 #endif
+
+    bool keep_memory_allocations_mapped() const override final { return true; }
 };
 
 static bool isAMDDevice(const char* name, const uint32_t vendorID) {
@@ -300,7 +331,7 @@ std::unique_ptr<cvk_device_properties> create_cvk_device_properties(
     } else if (strcmp(name, "Adreno (TM) 640") == 0) {
         RETURN(cvk_device_properties_adreno_640);
     } else if (isIntelDevice(name, vendorID)) {
-        RETURN(cvk_device_properties_intel);
+        RETURN(cvk_device_properties_intel, deviceID);
     } else if (isAMDDevice(name, vendorID)) {
         RETURN(cvk_device_properties_amd);
     } else if (strcmp(name, "Samsung Xclipse 920") == 0) {
