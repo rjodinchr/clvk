@@ -135,7 +135,13 @@ struct cvk_device_properties_intel : public cvk_device_properties_virtual {
         return "-hack-mul-extended -hack-convert-to-float "
                "-hack-image1d-buffer-bgra";
     }
-    uint32_t preferred_subgroup_size() const override final { return 16; }
+    uint32_t preferred_subgroup_size() const override final {
+        if (!old_devices()) {
+            return 16;
+        } else {
+            return cvk_device_properties_virtual::preferred_subgroup_size();
+        }
+    }
     bool bgra_format_not_supported_for_image1d_buffer() const override final {
         return true;
     }
@@ -143,6 +149,20 @@ struct cvk_device_properties_intel : public cvk_device_properties_virtual {
     image_format_set disabled_image_formats() const override final {
         return image_format_set{{CL_RGB, CL_UNORM_SHORT_565}};
     }
+
+    cvk_device_properties_intel(const uint32_t deviceID)
+        : m_deviceID(deviceID) {}
+
+private:
+    bool old_devices() const {
+        const uint32_t kabylakeDeviceID = 0x5900;
+        const uint32_t cometlakeDeviceID = 0x9b00;
+        const uint32_t geminilakeDeviceID = 0x3180;
+        return (m_deviceID & 0xff00) == kabylakeDeviceID ||
+               (m_deviceID & 0xff00) == cometlakeDeviceID ||
+               (m_deviceID & 0xfff0) == geminilakeDeviceID;
+    }
+    const uint32_t m_deviceID;
 };
 
 static bool isIntelDevice(const char* name, const uint32_t vendorID) {
@@ -171,9 +191,7 @@ struct cvk_device_properties_amd : public cvk_device_properties_virtual {
             "trunc",
         });
     }
-    std::string clspv_options() const override final {
-        return "-hack-convert-to-float";
-    }
+    bool keep_memory_allocations_mapped() const override final { return true; }
 };
 
 static bool isAMDDevice(const char* name, const uint32_t vendorID) {
@@ -330,7 +348,7 @@ std::unique_ptr<cvk_device_properties> create_cvk_device_properties(
     } else if (isAdrenoX1_85Device(vendorID, deviceID)) {
         RETURN(cvk_device_properties_adreno_x1_85);
     } else if (isIntelDevice(name, vendorID)) {
-        RETURN(cvk_device_properties_intel);
+        RETURN(cvk_device_properties_intel, deviceID);
     } else if (isAMDDevice(name, vendorID)) {
         RETURN(cvk_device_properties_amd);
     } else if (strcmp(name, "Samsung Xclipse 920") == 0) {
