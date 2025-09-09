@@ -225,6 +225,10 @@ OPTION(bool, poll_executor, false)
 // thread to know where a semaphore has reached an expected value.
 PROPERTY(bool, poll_main_thread, false)
 
+// Use a kernel to implement clEnqueueFillImage, so that the operation is
+// performed on device (Not through a host-to-device transfer).
+OPTION(bool, fill_image_on_device, false)
+
 
 ////////////////////////////////////////////////////////////
 // LOGGING & VALIDATION ////////////////////////////////////
