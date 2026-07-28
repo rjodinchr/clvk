@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <fstream>
 #include <map>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -467,7 +468,8 @@ public:
     CHECK_RETURN cl_int init();
 
     CHECK_RETURN VkPipeline
-    create_pipeline(const cvk_spec_constant_map& spec_constants);
+    create_pipeline(const cvk_spec_constant_map& spec_constants,
+                    std::optional<uint32_t>& subgroup_size);
 
     CHECK_RETURN bool allocate_descriptor_sets(VkDescriptorSet* ds);
 
@@ -607,7 +609,8 @@ struct cvk_program : public _cl_program, api_object<object_magic::program> {
         : api_object(ctx), m_num_devices(1U),
           m_binary_type(CL_PROGRAM_BINARY_TYPE_NONE),
           m_shader_module(VK_NULL_HANDLE),
-          m_binary(m_context->device()->vulkan_spirv_env()) {
+          m_binary(m_context->device()->vulkan_spirv_env()),
+          m_uses_subgroups(false) {
         m_dev_status[m_context->device()] = CL_BUILD_NONE;
     }
 
@@ -797,7 +800,7 @@ public:
         return m_binary.required_work_group_size(kernel);
     }
 
-    uint32_t required_sub_group_size(std::string& kernel) const {
+    uint32_t required_sub_group_size(const std::string& kernel) const {
         auto forced_subgroup_size_or_zero = []() {
             if (config.force_subgroup_size.set) {
                 return config.force_subgroup_size();
@@ -833,6 +836,8 @@ public:
 
         return kernel_subgroup_size;
     }
+
+    bool uses_subgroups() const { return m_uses_subgroups; }
 
     const VkPipelineCache& pipeline_cache() const { return m_pipeline_cache; }
 
@@ -918,9 +923,9 @@ private:
 
     void prepare_push_constant_range();
 
-    /// Check if all of the capabilities required by the SPIR-V module are
-    /// supported by `device`.
-    CHECK_RETURN bool check_capabilities(const cvk_device* device);
+    /// Parse all capabilities required by the SPIR-V module
+    CHECK_RETURN bool parse_spirv_capabilities(const cvk_device* device,
+                                               bool check_support);
 
     uint32_t m_num_devices;
     cl_uint m_num_input_programs;
@@ -949,6 +954,7 @@ private:
     VkPipelineCache m_pipeline_cache;
     std::unique_ptr<cvk_buffer> m_module_constant_data_buffer;
     std::unordered_map<uint32_t, user_spec_constant_data> m_user_spec_constants;
+    bool m_uses_subgroups;
 };
 
 static inline cvk_program* icd_downcast(cl_program program) {
