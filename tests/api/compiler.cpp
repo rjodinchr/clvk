@@ -585,6 +585,27 @@ TEST_F(WithContext, UnsupportedCapabilities) {
     ASSERT_TRUE(build_log.find("Device does not support SPIR-V capability") !=
                 std::string::npos);
 }
+
+TEST_F(WithContext, StripBuildOptions) {
+    static const char* source = "kernel void foo() {}";
+    const char* test_options[] = {"-invalid-option",
+                                  "-invalid-option=something"};
+
+    auto program = CreateProgram(source);
+    for (const char* options : test_options) {
+        cl_int err =
+            clBuildProgram(program, 1, &gDevice, options, nullptr, nullptr);
+        ASSERT_EQ(err, CL_BUILD_PROGRAM_FAILURE);
+    }
+
+    std::set<std::string> stripped = {"-invalid-option"};
+    auto cfg = CLVK_CONFIG_SCOPED_OVERRIDE(
+        strip_build_options, std::set<std::string>, stripped, true);
+
+    for (const char* options : test_options) {
+        BuildProgram(program, options);
+    }
+}
 #endif
 
 TEST_F(WithCommandQueue, RebuildProgramWithDifferentDefines) {
